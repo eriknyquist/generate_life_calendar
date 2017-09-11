@@ -1,4 +1,7 @@
 import datetime
+import argparse
+import sys
+import os
 import cairo
 
 DOC_WIDTH = 1872   # 26 inches
@@ -6,7 +9,7 @@ DOC_HEIGHT = 2880  # 40 inches
 DOC_NAME = "life_calendar.pdf"
 DOC_TITLE = "LIFE CALENDAR"
 
-KEY_NEWYEAR_DESC = "Week starting the new year"
+KEY_NEWYEAR_DESC = "First week of the new year"
 KEY_BIRTHDAY_DESC = "Week of your birthday"
 
 FONT = "Brocha"
@@ -23,14 +26,43 @@ BOX_MARGIN = 10
 BOX_SIZE = ((DOC_HEIGHT - (Y_MARGIN + 36)) / NUM_ROWS) - BOX_MARGIN
 X_MARGIN = (DOC_WIDTH - ((BOX_SIZE + BOX_MARGIN) * NUM_COLUMNS)) / 2
 
-START_YEAR = 1990
-START_MON = 10
-START_DAY = 23
-
 BIRTHDAY_COLOUR = (0.5, 0.5, 0.5)
 NEWYEAR_COLOUR = (0.8, 0.8, 0.8)
 
-surface = cairo.PDFSurface (DOC_NAME, DOC_WIDTH, DOC_HEIGHT)
+parser = argparse.ArgumentParser(description='\nGenerate a personalized "Life '
+    ' Calendar", inspired by the calendar with the same name from the '
+    'waitbutwhy.com store')
+
+parser.add_argument(type=str, dest='date', help='your birthday, in either '
+    'dd/mm/yyyy or dd-mm-yyyy format')
+
+parser.add_argument('-f', '--filename', type=str, dest='filename',
+    help='output filename', default=DOC_NAME)
+
+args = parser.parse_args()
+
+def parse_date(date):
+    formats = ['%d/%m/%Y', '%d-%m-%Y']
+    stripped = date.strip()
+
+    for f in formats:
+        try:
+            ret = datetime.datetime.strptime(date, f)
+        except:
+            continue
+        else:
+            return ret
+
+    return None
+
+START_DATE = parse_date(args.date)
+if START_DATE == None:
+    print "Error: incorrect date format\n"
+    parser.print_help()
+    sys.exit(1)
+
+doc_name = '%s.pdf' % (os.path.splitext(args.filename)[0])
+surface = cairo.PDFSurface (doc_name, DOC_WIDTH, DOC_HEIGHT)
 ctx = cairo.Context(surface)
 
 def draw_square(pos_x, pos_y, fillcolour=(1, 1, 1)):
@@ -69,7 +101,7 @@ def draw_row(pos_y, date):
     for i in range(NUM_COLUMNS):
         fill=(1, 1, 1)
 
-        if is_current_week(date, START_MON, START_DAY):
+        if is_current_week(date, START_DATE.month, START_DATE.day):
             fill = BIRTHDAY_COLOUR
         elif is_current_week(date, 1, 1):
             fill = NEWYEAR_COLOUR
@@ -89,7 +121,7 @@ def draw_key_item(pos_x, pos_y, desc, colour):
 
     return pos_x + w + (BOX_SIZE * 2)
 
-def draw_grid(start_date):
+def draw_grid(date):
     """
     Draws the whole grid of 52x90 squares
     """
@@ -99,7 +131,7 @@ def draw_grid(start_date):
     # Draw the key for box colours
     ctx.set_font_size(TINYFONT_SIZE)
     ctx.select_font_face(FONT, cairo.FONT_SLANT_NORMAL,
-        cairo.FONT_WEIGHT_BOLD)
+        cairo.FONT_WEIGHT_NORMAL)
 
     pos_x = draw_key_item(pos_x, pos_y, KEY_BIRTHDAY_DESC, BIRTHDAY_COLOUR)
     draw_key_item(pos_x, pos_y, KEY_NEWYEAR_DESC, NEWYEAR_COLOUR)
@@ -123,7 +155,7 @@ def draw_grid(start_date):
     for i in range(NUM_ROWS):
         # Generate string for current date
         ctx.set_source_rgb(0, 0, 0)
-        date_str = start_date.strftime('%d %b, %Y')
+        date_str = date.strftime('%d %b, %Y')
         w, h = text_size(date_str)
 
         # Draw it in front of the current row
@@ -132,11 +164,11 @@ def draw_grid(start_date):
         ctx.show_text(date_str)
 
         # Draw the current row
-        draw_row(pos_y, start_date)
+        draw_row(pos_y, date)
 
         # Increment y position and current date by 1 row/year
         pos_y += BOX_SIZE + BOX_MARGIN
-        start_date += datetime.timedelta(weeks=52)
+        date += datetime.timedelta(weeks=52)
 
 def main():
     # Fill background with white
@@ -153,7 +185,9 @@ def main():
     ctx.show_text(DOC_TITLE)
 
     # Draw 52x90 grid of squares
-    draw_grid(datetime.datetime(START_YEAR, START_MON, START_DAY))
+    draw_grid(START_DATE)
     ctx.show_page()
+    print 'Created %s' % doc_name
 
-main()
+if __name__ == "__main__":
+    main()
