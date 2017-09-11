@@ -12,6 +12,9 @@ DOC_TITLE = "LIFE CALENDAR"
 KEY_NEWYEAR_DESC = "First week of the new year"
 KEY_BIRTHDAY_DESC = "Week of your birthday"
 
+XAXIS_DESC = "Weeks of the year"
+YAXIS_DESC = "Years of your life"
+
 FONT = "Brocha"
 BIGFONT_SIZE = 48
 SMALLFONT_SIZE = 16
@@ -28,6 +31,9 @@ X_MARGIN = (DOC_WIDTH - ((BOX_SIZE + BOX_MARGIN) * NUM_COLUMNS)) / 2
 
 BIRTHDAY_COLOUR = (0.5, 0.5, 0.5)
 NEWYEAR_COLOUR = (0.8, 0.8, 0.8)
+
+ARROW_HEAD_LENGTH = 36
+ARROW_HEAD_WIDTH = 8
 
 parser = argparse.ArgumentParser(description='\nGenerate a personalized "Life '
     ' Calendar", inspired by the calendar with the same name from the '
@@ -64,6 +70,23 @@ if START_DATE == None:
 doc_name = '%s.pdf' % (os.path.splitext(args.filename)[0])
 surface = cairo.PDFSurface (doc_name, DOC_WIDTH, DOC_HEIGHT)
 ctx = cairo.Context(surface)
+
+def draw_horizontal_arrow(pos_x, pos_y, length=144):
+    ctx.set_source_rgb(0, 0, 0)
+    ctx.set_line_width(1)
+    ctx.move_to(pos_x, pos_y)
+    ctx.line_to(pos_x + length - 5, pos_y)
+    ctx.stroke()
+
+    ctx.move_to(pos_x + length, pos_y)
+    ctx.line_to((pos_x + length) - ARROW_HEAD_LENGTH,
+        pos_y - (ARROW_HEAD_WIDTH / 2))
+
+    ctx.line_to((pos_x + length) - ARROW_HEAD_LENGTH,
+        pos_y + (ARROW_HEAD_WIDTH / 2))
+    ctx.line_to(pos_x + length, pos_y)
+    ctx.fill()
+    ctx.stroke()
 
 def draw_square(pos_x, pos_y, fillcolour=(1, 1, 1)):
     """
@@ -184,8 +207,13 @@ def main():
     ctx.move_to((DOC_WIDTH / 2) - (w / 2), (Y_MARGIN / 2) - (h / 2))
     ctx.show_text(DOC_TITLE)
 
+    # Back up to the last monday
+    date = START_DATE
+    while date.weekday() != 0:
+        date -= datetime.timedelta(days=1)
+
     # Draw 52x90 grid of squares
-    draw_grid(START_DATE)
+    draw_grid(date)
     ctx.show_page()
     print 'Created %s' % doc_name
 
