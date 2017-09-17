@@ -18,14 +18,15 @@ YAXIS_DESC = "Years of your life"
 FONT = "Brocha"
 BIGFONT_SIZE = 48
 SMALLFONT_SIZE = 16
-TINYFONT_SIZE = 12
+TINYFONT_SIZE = 14
 
 NUM_ROWS = 90
 NUM_COLUMNS = 52
 
 Y_MARGIN = 144
-BOX_MARGIN = 10
+BOX_MARGIN = 6
 
+BOX_LINE_WIDTH = 3
 BOX_SIZE = ((DOC_HEIGHT - (Y_MARGIN + 36)) / NUM_ROWS) - BOX_MARGIN
 X_MARGIN = (DOC_WIDTH - ((BOX_SIZE + BOX_MARGIN) * NUM_COLUMNS)) / 2
 
@@ -39,11 +40,15 @@ parser = argparse.ArgumentParser(description='\nGenerate a personalized "Life '
     ' Calendar", inspired by the calendar with the same name from the '
     'waitbutwhy.com store')
 
-parser.add_argument(type=str, dest='date', help='your birthday, in either '
-    'dd/mm/yyyy or dd-mm-yyyy format')
+parser.add_argument(type=str, dest='date', help='starting date; your birthday,'
+    'in either dd/mm/yyyy or dd-mm-yyyy format')
 
 parser.add_argument('-f', '--filename', type=str, dest='filename',
     help='output filename', default=DOC_NAME)
+
+parser.add_argument('-e', '--end', type=str, dest='enddate',
+    help='end date; If this is set, then a calendar with a different start date'
+    'will be generated for each dey between the starting date and this date')
 
 args = parser.parse_args()
 
@@ -59,19 +64,15 @@ def parse_date(date):
         else:
             return ret
 
-    return None
-
-START_DATE = parse_date(args.date)
-if START_DATE == None:
     print "Error: incorrect date format\n"
     parser.print_help()
     sys.exit(1)
 
-doc_name = '%s.pdf' % (os.path.splitext(args.filename)[0])
-surface = cairo.PDFSurface (doc_name, DOC_WIDTH, DOC_HEIGHT)
-ctx = cairo.Context(surface)
+START_DATE = parse_date(args.date)
 
-def draw_horizontal_arrow(pos_x, pos_y, length=144):
+doc_name = '%s.pdf' % (os.path.splitext(args.filename)[0])
+
+def draw_horizontal_arrow(ctx, pos_x, pos_y, length=144):
     ctx.set_source_rgb(0, 0, 0)
     ctx.set_line_width(1)
     ctx.move_to(pos_x, pos_y)
@@ -88,12 +89,12 @@ def draw_horizontal_arrow(pos_x, pos_y, length=144):
     ctx.fill()
     ctx.stroke()
 
-def draw_square(pos_x, pos_y, fillcolour=(1, 1, 1)):
+def draw_square(ctx, pos_x, pos_y, fillcolour=(1, 1, 1)):
     """
     Draws a square at pos_x,pos_y
     """
 
-    ctx.set_line_width(4)
+    ctx.set_line_width(BOX_LINE_WIDTH)
     ctx.set_source_rgb(0, 0, 0)
     ctx.move_to(pos_x, pos_y)
 
@@ -103,7 +104,7 @@ def draw_square(pos_x, pos_y, fillcolour=(1, 1, 1)):
     ctx.set_source_rgb(*fillcolour)
     ctx.fill()
 
-def text_size(text):
+def text_size(ctx, text):
     _, _, width, height, _, _ = ctx.text_extents(text)
     return width, height
 
@@ -114,7 +115,7 @@ def is_current_week(now, month, day):
 
     return (now <= date1 < end) or (now <= date2 < end)
 
-def draw_row(pos_y, date):
+def draw_row(ctx, pos_y, date):
     """
     Draws a row of 52 squares, starting at pos_y
     """
@@ -129,22 +130,22 @@ def draw_row(pos_y, date):
         elif is_current_week(date, 1, 1):
             fill = NEWYEAR_COLOUR
 
-        draw_square(pos_x, pos_y, fillcolour=fill)
+        draw_square(ctx, pos_x, pos_y, fillcolour=fill)
         pos_x += BOX_SIZE + BOX_MARGIN
         date += datetime.timedelta(weeks=1)
 
-def draw_key_item(pos_x, pos_y, desc, colour):
-    draw_square(pos_x, pos_y, fillcolour=colour)
+def draw_key_item(ctx, pos_x, pos_y, desc, colour):
+    draw_square(ctx, pos_x, pos_y, fillcolour=colour)
     pos_x += BOX_SIZE * 2
 
     ctx.set_source_rgb(0, 0, 0)
-    w, h = text_size(desc)
+    w, h = text_size(ctx, desc)
     ctx.move_to(pos_x, pos_y + (BOX_SIZE / 2) + (h / 2))
     ctx.show_text(desc)
 
     return pos_x + w + (BOX_SIZE * 2)
 
-def draw_grid(date):
+def draw_grid(ctx, date):
     """
     Draws the whole grid of 52x90 squares
     """
@@ -156,8 +157,8 @@ def draw_grid(date):
     ctx.select_font_face(FONT, cairo.FONT_SLANT_NORMAL,
         cairo.FONT_WEIGHT_NORMAL)
 
-    pos_x = draw_key_item(pos_x, pos_y, KEY_BIRTHDAY_DESC, BIRTHDAY_COLOUR)
-    draw_key_item(pos_x, pos_y, KEY_NEWYEAR_DESC, NEWYEAR_COLOUR)
+    pos_x = draw_key_item(ctx, pos_x, pos_y, KEY_BIRTHDAY_DESC, BIRTHDAY_COLOUR)
+    draw_key_item(ctx, pos_x, pos_y, KEY_NEWYEAR_DESC, NEWYEAR_COLOUR)
 
     # draw week numbers above top row
     ctx.set_font_size(TINYFONT_SIZE)
@@ -167,8 +168,10 @@ def draw_grid(date):
     pos_x = X_MARGIN
     pos_y = Y_MARGIN
     for i in range(NUM_COLUMNS):
-        ctx.move_to(pos_x, pos_y - BOX_SIZE)
-        ctx.show_text(str(i + 1))
+        text = str(i + 1)
+        w, h = text_size(ctx, text)
+        ctx.move_to(pos_x + (BOX_SIZE / 2) - (w / 2), pos_y - BOX_SIZE)
+        ctx.show_text(text)
         pos_x += BOX_SIZE + BOX_MARGIN
 
     ctx.set_font_size(TINYFONT_SIZE)
@@ -179,7 +182,7 @@ def draw_grid(date):
         # Generate string for current date
         ctx.set_source_rgb(0, 0, 0)
         date_str = date.strftime('%d %b, %Y')
-        w, h = text_size(date_str)
+        w, h = text_size(ctx, date_str)
 
         # Draw it in front of the current row
         ctx.move_to(X_MARGIN - w - BOX_SIZE,
@@ -187,14 +190,17 @@ def draw_grid(date):
         ctx.show_text(date_str)
 
         # Draw the current row
-        draw_row(pos_y, date)
+        draw_row(ctx, pos_y, date)
 
         # Increment y position and current date by 1 row/year
         pos_y += BOX_SIZE + BOX_MARGIN
         date += datetime.timedelta(weeks=52)
 
-def main():
+def gen_calendar(start_date, filename):
     # Fill background with white
+    surface = cairo.PDFSurface (filename, DOC_WIDTH, DOC_HEIGHT)
+    ctx = cairo.Context(surface)
+
     ctx.set_source_rgb(1, 1, 1)
     ctx.rectangle(0, 0, DOC_WIDTH, DOC_HEIGHT)
     ctx.fill()
@@ -203,19 +209,33 @@ def main():
         cairo.FONT_WEIGHT_BOLD)
     ctx.set_source_rgb(0, 0, 0)
     ctx.set_font_size(BIGFONT_SIZE)
-    w, h = text_size(DOC_TITLE)
+    w, h = text_size(ctx, DOC_TITLE)
     ctx.move_to((DOC_WIDTH / 2) - (w / 2), (Y_MARGIN / 2) - (h / 2))
     ctx.show_text(DOC_TITLE)
 
     # Back up to the last monday
-    date = START_DATE
+    date = start_date
     while date.weekday() != 0:
         date -= datetime.timedelta(days=1)
 
     # Draw 52x90 grid of squares
-    draw_grid(date)
+    draw_grid(ctx, date)
     ctx.show_page()
-    print 'Created %s' % doc_name
+    print 'Created %s' % filename
+
+def main():
+    if args.enddate:
+        start = START_DATE
+        end = parse_date(args.enddate)
+
+        while start <= end:
+            date_str = start.strftime('%d-%m-%Y')
+            name = "life_calendar_%s.pdf" % date_str
+            gen_calendar(start, name)
+            start += datetime.timedelta(days=1)
+
+    else:
+        gen_calendar(START_DATE, doc_name)
 
 if __name__ == "__main__":
     main()
