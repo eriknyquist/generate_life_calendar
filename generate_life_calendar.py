@@ -7,7 +7,6 @@ import cairo
 DOC_WIDTH = 1872   # 26 inches
 DOC_HEIGHT = 2880  # 40 inches
 DOC_NAME = "life_calendar.pdf"
-DOC_TITLE = "LIFE CALENDAR LIFE CALENDAR"
 
 KEY_NEWYEAR_DESC = "First week of the new year"
 KEY_BIRTHDAY_DESC = "Week of your birthday"
@@ -16,9 +15,12 @@ XAXIS_DESC = "Weeks of the year"
 YAXIS_DESC = "Years of your life"
 
 FONT = "Brocha"
-BIGFONT_SIZE = 48
+BIGFONT_SIZE = 40
 SMALLFONT_SIZE = 16
 TINYFONT_SIZE = 14
+
+MAX_TITLE_SIZE = 30
+DEFAULT_TITLE = "LIFE CALENDAR"
 
 NUM_ROWS = 90
 NUM_COLUMNS = 52
@@ -46,6 +48,10 @@ parser.add_argument(type=str, dest='date', help='starting date; your birthday,'
 parser.add_argument('-f', '--filename', type=str, dest='filename',
     help='output filename', default=DOC_NAME)
 
+parser.add_argument('-t', '--title', type=str, dest='title',
+    help='Calendar title text (default is "%s")' % DEFAULT_TITLE,
+    default=DEFAULT_TITLE)
+
 parser.add_argument('-e', '--end', type=str, dest='enddate',
     help='end date; If this is set, then a calendar with a different start date'
     ' will be generated for each day between the starting date and this date')
@@ -71,6 +77,10 @@ def parse_date(date):
 START_DATE = parse_date(args.date)
 
 doc_name = '%s.pdf' % (os.path.splitext(args.filename)[0])
+
+if args.title and len(args.title) > MAX_TITLE_SIZE:
+    print "Error: title can't be longer than %d characters" % MAX_TITLE_SIZE
+    sys.exit(1)
 
 def draw_square(ctx, pos_x, pos_y, fillcolour=(1, 1, 1)):
     """
@@ -119,7 +129,7 @@ def draw_row(ctx, pos_y, date):
 
 def draw_key_item(ctx, pos_x, pos_y, desc, colour):
     draw_square(ctx, pos_x, pos_y, fillcolour=colour)
-    pos_x += BOX_SIZE * 2
+    pos_x += BOX_SIZE + (BOX_SIZE / 2)
 
     ctx.set_source_rgb(0, 0, 0)
     w, h = text_size(ctx, desc)
@@ -132,8 +142,8 @@ def draw_grid(ctx, date):
     """
     Draws the whole grid of 52x90 squares
     """
-    pos_y = BOX_SIZE
-    pos_x = X_MARGIN / 2
+    pos_x = X_MARGIN / 4
+    pos_y = pos_x
 
     # Draw the key for box colours
     ctx.set_font_size(TINYFONT_SIZE)
@@ -192,9 +202,9 @@ def gen_calendar(start_date, filename):
         cairo.FONT_WEIGHT_BOLD)
     ctx.set_source_rgb(0, 0, 0)
     ctx.set_font_size(BIGFONT_SIZE)
-    w, h = text_size(ctx, DOC_TITLE)
+    w, h = text_size(ctx, args.title)
     ctx.move_to((DOC_WIDTH / 2) - (w / 2), (Y_MARGIN / 2) - (h / 2))
-    ctx.show_text(DOC_TITLE)
+    ctx.show_text(args.title)
 
     # Back up to the last monday
     date = start_date
