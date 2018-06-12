@@ -72,23 +72,6 @@ START_DATE = parse_date(args.date)
 
 doc_name = '%s.pdf' % (os.path.splitext(args.filename)[0])
 
-def draw_horizontal_arrow(ctx, pos_x, pos_y, length=144):
-    ctx.set_source_rgb(0, 0, 0)
-    ctx.set_line_width(1)
-    ctx.move_to(pos_x, pos_y)
-    ctx.line_to(pos_x + length - 5, pos_y)
-    ctx.stroke()
-
-    ctx.move_to(pos_x + length, pos_y)
-    ctx.line_to((pos_x + length) - ARROW_HEAD_LENGTH,
-        pos_y - (ARROW_HEAD_WIDTH / 2))
-
-    ctx.line_to((pos_x + length) - ARROW_HEAD_LENGTH,
-        pos_y + (ARROW_HEAD_WIDTH / 2))
-    ctx.line_to(pos_x + length, pos_y)
-    ctx.fill()
-    ctx.stroke()
-
 def draw_square(ctx, pos_x, pos_y, fillcolour=(1, 1, 1)):
     """
     Draws a square at pos_x,pos_y
