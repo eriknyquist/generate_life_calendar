@@ -7,7 +7,7 @@ import cairo
 DOC_WIDTH = 1872   # 26 inches
 DOC_HEIGHT = 2880  # 40 inches
 DOC_NAME = "life_calendar.pdf"
-DOC_TITLE = "LIFE CALENDAR"
+DOC_TITLE = "LIFE CALENDAR LIFE CALENDAR"
 
 KEY_NEWYEAR_DESC = "First week of the new year"
 KEY_BIRTHDAY_DESC = "Week of your birthday"
@@ -48,7 +48,7 @@ parser.add_argument('-f', '--filename', type=str, dest='filename',
 
 parser.add_argument('-e', '--end', type=str, dest='enddate',
     help='end date; If this is set, then a calendar with a different start date'
-    'will be generated for each dey between the starting date and this date')
+    ' will be generated for each day between the starting date and this date')
 
 args = parser.parse_args()
 
