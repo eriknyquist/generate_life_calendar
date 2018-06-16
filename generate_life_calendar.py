@@ -189,7 +189,7 @@ def draw_grid(ctx, date):
         pos_y += BOX_SIZE + BOX_MARGIN
         date += datetime.timedelta(weeks=52)
 
-def gen_calendar(start_date, filename):
+def gen_calendar(start_date, title, filename):
     # Fill background with white
     surface = cairo.PDFSurface (filename, DOC_WIDTH, DOC_HEIGHT)
     ctx = cairo.Context(surface)
@@ -202,9 +202,9 @@ def gen_calendar(start_date, filename):
         cairo.FONT_WEIGHT_BOLD)
     ctx.set_source_rgb(0, 0, 0)
     ctx.set_font_size(BIGFONT_SIZE)
-    w, h = text_size(ctx, args.title)
+    w, h = text_size(ctx, title)
     ctx.move_to((DOC_WIDTH / 2) - (w / 2), (Y_MARGIN / 2) - (h / 2))
-    ctx.show_text(args.title)
+    ctx.show_text(title)
 
     # Back up to the last monday
     date = start_date
@@ -224,11 +224,11 @@ def main():
         while start <= end:
             date_str = start.strftime('%d-%m-%Y')
             name = "life_calendar_%s.pdf" % date_str
-            gen_calendar(start, name)
+            gen_calendar(start, args.title, name)
             start += datetime.timedelta(days=1)
 
     else:
-        gen_calendar(START_DATE, doc_name)
+        gen_calendar(START_DATE, args.title, doc_name)
 
 if __name__ == "__main__":
     main()
