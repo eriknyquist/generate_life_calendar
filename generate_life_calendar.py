@@ -38,50 +38,6 @@ NEWYEAR_COLOUR = (0.8, 0.8, 0.8)
 ARROW_HEAD_LENGTH = 36
 ARROW_HEAD_WIDTH = 8
 
-parser = argparse.ArgumentParser(description='\nGenerate a personalized "Life '
-    ' Calendar", inspired by the calendar with the same name from the '
-    'waitbutwhy.com store')
-
-parser.add_argument(type=str, dest='date', help='starting date; your birthday,'
-    'in either dd/mm/yyyy or dd-mm-yyyy format')
-
-parser.add_argument('-f', '--filename', type=str, dest='filename',
-    help='output filename', default=DOC_NAME)
-
-parser.add_argument('-t', '--title', type=str, dest='title',
-    help='Calendar title text (default is "%s")' % DEFAULT_TITLE,
-    default=DEFAULT_TITLE)
-
-parser.add_argument('-e', '--end', type=str, dest='enddate',
-    help='end date; If this is set, then a calendar with a different start date'
-    ' will be generated for each day between the starting date and this date')
-
-args = parser.parse_args()
-
-def parse_date(date):
-    formats = ['%d/%m/%Y', '%d-%m-%Y']
-    stripped = date.strip()
-
-    for f in formats:
-        try:
-            ret = datetime.datetime.strptime(date, f)
-        except:
-            continue
-        else:
-            return ret
-
-    print("Error: incorrect date format\n")
-    parser.print_help()
-    sys.exit(1)
-
-START_DATE = parse_date(args.date)
-
-doc_name = '%s.pdf' % (os.path.splitext(args.filename)[0])
-
-if args.title and len(args.title) > MAX_TITLE_SIZE:
-    print("Error: title can't be longer than %d characters" % MAX_TITLE_SIZE)
-    sys.exit(1)
-
 def draw_square(ctx, pos_x, pos_y, fillcolour=(1, 1, 1)):
     """
     Draws a square at pos_x,pos_y
@@ -108,7 +64,7 @@ def is_current_week(now, month, day):
 
     return (now <= date1 < end) or (now <= date2 < end)
 
-def draw_row(ctx, pos_y, date):
+def draw_row(ctx, pos_y, start_date, date):
     """
     Draws a row of 52 squares, starting at pos_y
     """
@@ -118,7 +74,7 @@ def draw_row(ctx, pos_y, date):
     for i in range(NUM_COLUMNS):
         fill=(1, 1, 1)
 
-        if is_current_week(date, START_DATE.month, START_DATE.day):
+        if is_current_week(date, start_date.month, start_date.day):
             fill = BIRTHDAY_COLOUR
         elif is_current_week(date, 1, 1):
             fill = NEWYEAR_COLOUR
@@ -142,6 +98,7 @@ def draw_grid(ctx, date):
     """
     Draws the whole grid of 52x90 squares
     """
+    start_date = date
     pos_x = X_MARGIN / 4
     pos_y = pos_x
 
@@ -183,7 +140,7 @@ def draw_grid(ctx, date):
         ctx.show_text(date_str)
 
         # Draw the current row
-        draw_row(ctx, pos_y, date)
+        draw_row(ctx, pos_y, start_date, date)
 
         # Increment y position and current date by 1 row/year
         pos_y += BOX_SIZE + BOX_MARGIN
@@ -217,8 +174,52 @@ def gen_calendar(start_date, title, filename):
     print('Created %s' % filename)
 
 def main():
+    parser = argparse.ArgumentParser(description='\nGenerate a personalized "Life '
+        ' Calendar", inspired by the calendar with the same name from the '
+        'waitbutwhy.com store')
+
+    parser.add_argument(type=str, dest='date', help='starting date; your birthday,'
+        'in either dd/mm/yyyy or dd-mm-yyyy format')
+
+    parser.add_argument('-f', '--filename', type=str, dest='filename',
+        help='output filename', default=DOC_NAME)
+
+    parser.add_argument('-t', '--title', type=str, dest='title',
+        help='Calendar title text (default is "%s")' % DEFAULT_TITLE,
+        default=DEFAULT_TITLE)
+
+    parser.add_argument('-e', '--end', type=str, dest='enddate',
+        help='end date; If this is set, then a calendar with a different start date'
+        ' will be generated for each day between the starting date and this date')
+
+    args = parser.parse_args()
+
+    def parse_date(date):
+        formats = ['%d/%m/%Y', '%d-%m-%Y']
+        stripped = date.strip()
+
+        for f in formats:
+            try:
+                ret = datetime.datetime.strptime(date, f)
+            except:
+                continue
+            else:
+                return ret
+
+        print("Error: incorrect date format\n")
+        parser.print_help()
+        sys.exit(1)
+
+    start_date = parse_date(args.date)
+
+    doc_name = '%s.pdf' % (os.path.splitext(args.filename)[0])
+
+    if args.title and len(args.title) > MAX_TITLE_SIZE:
+        print("Error: title can't be longer than %d characters" % MAX_TITLE_SIZE)
+        sys.exit(1)
+
     if args.enddate:
-        start = START_DATE
+        start = start_date
         end = parse_date(args.enddate)
 
         while start <= end:
@@ -228,7 +229,7 @@ def main():
             start += datetime.timedelta(days=1)
 
     else:
-        gen_calendar(START_DATE, args.title, doc_name)
+        gen_calendar(start_date, args.title, doc_name)
 
 if __name__ == "__main__":
     main()
