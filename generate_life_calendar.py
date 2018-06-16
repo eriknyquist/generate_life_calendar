@@ -70,7 +70,7 @@ def parse_date(date):
         else:
             return ret
 
-    print "Error: incorrect date format\n"
+    print("Error: incorrect date format\n")
     parser.print_help()
     sys.exit(1)
 
@@ -79,7 +79,7 @@ START_DATE = parse_date(args.date)
 doc_name = '%s.pdf' % (os.path.splitext(args.filename)[0])
 
 if args.title and len(args.title) > MAX_TITLE_SIZE:
-    print "Error: title can't be longer than %d characters" % MAX_TITLE_SIZE
+    print("Error: title can't be longer than %d characters" % MAX_TITLE_SIZE)
     sys.exit(1)
 
 def draw_square(ctx, pos_x, pos_y, fillcolour=(1, 1, 1)):
@@ -214,7 +214,7 @@ def gen_calendar(start_date, filename):
     # Draw 52x90 grid of squares
     draw_grid(ctx, date)
     ctx.show_page()
-    print 'Created %s' % filename
+    print('Created %s' % filename)
 
 def main():
     if args.enddate:
