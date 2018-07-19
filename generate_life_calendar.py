@@ -38,6 +38,20 @@ NEWYEAR_COLOUR = (0.8, 0.8, 0.8)
 ARROW_HEAD_LENGTH = 36
 ARROW_HEAD_WIDTH = 8
 
+def parse_date(date):
+    formats = ['%d/%m/%Y', '%d-%m-%Y']
+    stripped = date.strip()
+
+    for f in formats:
+        try:
+            ret = datetime.datetime.strptime(date, f)
+        except:
+            continue
+        else:
+            return ret
+
+    raise ValueError("Incorrect date format: must be dd-mm-yyyy or dd/mm/yyyy")
+
 def draw_square(ctx, pos_x, pos_y, fillcolour=(1, 1, 1)):
     """
     Draws a square at pos_x,pos_y
@@ -147,6 +161,10 @@ def draw_grid(ctx, date):
         date += datetime.timedelta(weeks=52)
 
 def gen_calendar(start_date, title, filename):
+    if len(title) > MAX_TITLE_SIZE:
+        raise ValueError("Title can't be longer than %d characters"
+            % MAX_TITLE_SIZE)
+
     # Fill background with white
     surface = cairo.PDFSurface (filename, DOC_WIDTH, DOC_HEIGHT)
     ctx = cairo.Context(surface)
@@ -171,7 +189,6 @@ def gen_calendar(start_date, title, filename):
     # Draw 52x90 grid of squares
     draw_grid(ctx, date)
     ctx.show_page()
-    print('Created %s' % filename)
 
 def main():
     parser = argparse.ArgumentParser(description='\nGenerate a personalized "Life '
@@ -194,42 +211,43 @@ def main():
 
     args = parser.parse_args()
 
-    def parse_date(date):
-        formats = ['%d/%m/%Y', '%d-%m-%Y']
-        stripped = date.strip()
-
-        for f in formats:
-            try:
-                ret = datetime.datetime.strptime(date, f)
-            except:
-                continue
-            else:
-                return ret
-
-        print("Error: incorrect date format\n")
-        parser.print_help()
-        sys.exit(1)
-
-    start_date = parse_date(args.date)
+    try:
+        start_date = parse_date(args.date)
+    except Exception as e:
+        print("Error: %s" % e)
+        return
 
     doc_name = '%s.pdf' % (os.path.splitext(args.filename)[0])
 
-    if args.title and len(args.title) > MAX_TITLE_SIZE:
-        print("Error: title can't be longer than %d characters" % MAX_TITLE_SIZE)
-        sys.exit(1)
-
     if args.enddate:
         start = start_date
-        end = parse_date(args.enddate)
+
+        try:
+            end = parse_date(args.enddate)
+        except Exception as e:
+            print("Error: %s" % e)
+            return
 
         while start <= end:
             date_str = start.strftime('%d-%m-%Y')
             name = "life_calendar_%s.pdf" % date_str
-            gen_calendar(start, args.title, name)
+
+            try:
+                gen_calendar(start, args.title, name)
+            except Exception as e:
+                print("Error: %s" % e)
+                return
+
             start += datetime.timedelta(days=1)
 
     else:
-        gen_calendar(start_date, args.title, doc_name)
+        try:
+            gen_calendar(start_date, args.title, doc_name)
+        except Exception as e:
+            print("Error: %s" % e)
+            return
+
+        print('Created %s' % doc_name)
 
 if __name__ == "__main__":
     main()
