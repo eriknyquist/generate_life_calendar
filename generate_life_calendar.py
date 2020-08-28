@@ -78,7 +78,7 @@ def is_current_week(now, month, day):
 
     return (now <= date1 < end) or (now <= date2 < end)
 
-def draw_row(ctx, pos_y, start_date, date):
+def draw_row(ctx, pos_y, birthdate, date):
     """
     Draws a row of 52 squares, starting at pos_y
     """
@@ -88,7 +88,7 @@ def draw_row(ctx, pos_y, start_date, date):
     for i in range(NUM_COLUMNS):
         fill=(1, 1, 1)
 
-        if is_current_week(date, start_date.month, start_date.day):
+        if is_current_week(date, birthdate.month, birthdate.day):
             fill = BIRTHDAY_COLOUR
         elif is_current_week(date, 1, 1):
             fill = NEWYEAR_COLOUR
@@ -108,7 +108,7 @@ def draw_key_item(ctx, pos_x, pos_y, desc, colour):
 
     return pos_x + w + (BOX_SIZE * 2)
 
-def draw_grid(ctx, date):
+def draw_grid(ctx, date, birthdate):
     """
     Draws the whole grid of 52x90 squares
     """
@@ -154,13 +154,13 @@ def draw_grid(ctx, date):
         ctx.show_text(date_str)
 
         # Draw the current row
-        draw_row(ctx, pos_y, start_date, date)
+        draw_row(ctx, pos_y, birthdate, date)
 
         # Increment y position and current date by 1 row/year
         pos_y += BOX_SIZE + BOX_MARGIN
         date += datetime.timedelta(weeks=52)
 
-def gen_calendar(start_date, title, filename):
+def gen_calendar(birthdate, title, filename):
     if len(title) > MAX_TITLE_SIZE:
         raise ValueError("Title can't be longer than %d characters"
             % MAX_TITLE_SIZE)
@@ -182,12 +182,12 @@ def gen_calendar(start_date, title, filename):
     ctx.show_text(title)
 
     # Back up to the last monday
-    date = start_date
+    date = birthdate
     while date.weekday() != 0:
         date -= datetime.timedelta(days=1)
 
     # Draw 52x90 grid of squares
-    draw_grid(ctx, date)
+    draw_grid(ctx, date, birthdate)
     ctx.show_page()
 
 def main():
