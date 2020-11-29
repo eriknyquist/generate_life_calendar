@@ -193,7 +193,7 @@ def gen_calendar(birthdate, title, filename):
 def main():
 
     def parse_date(date):
-        formats = ['%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y']
+        formats = ['%Y/%m/%d', '%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y']
 
         for f in formats:
             try:
@@ -210,7 +210,8 @@ def main():
         'waitbutwhy.com store')
 
     parser.add_argument(type=parse_date, dest='date', help='starting date; your birthday,'
-        'in either yyyy-mm-dd or dd/mm/yyyy format')
+        'in either yyyy/mm/dd or dd/mm/yyyy format (dashes \'-\' may also be used in '
+        'place of slashes \'/\')')
 
     parser.add_argument('-f', '--filename', type=str, dest='filename',
         help='output filename', default=DOC_NAME)
