@@ -191,12 +191,27 @@ def gen_calendar(birthdate, title, filename):
     ctx.show_page()
 
 def main():
+
+    def parse_date(date):
+        formats = ['%Y/%m/%d', '%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y']
+
+        for f in formats:
+            try:
+                ret = datetime.datetime.strptime(date.strip(), f)
+            except ValueError:
+                continue
+            else:
+                return ret
+
+        raise argparse.ArgumentTypeError("incorrect date format")
+
     parser = argparse.ArgumentParser(description='\nGenerate a personalized "Life '
         ' Calendar", inspired by the calendar with the same name from the '
         'waitbutwhy.com store')
 
-    parser.add_argument(type=str, dest='date', help='starting date; your birthday,'
-        'in either dd/mm/yyyy or dd-mm-yyyy format')
+    parser.add_argument(type=parse_date, dest='date', help='starting date; your birthday,'
+        'in either yyyy/mm/dd or dd/mm/yyyy format (dashes \'-\' may also be used in '
+        'place of slashes \'/\')')
 
     parser.add_argument('-f', '--filename', type=str, dest='filename',
         help='output filename', default=DOC_NAME)
@@ -205,30 +220,18 @@ def main():
         help='Calendar title text (default is "%s")' % DEFAULT_TITLE,
         default=DEFAULT_TITLE)
 
-    parser.add_argument('-e', '--end', type=str, dest='enddate',
+    parser.add_argument('-e', '--end', type=parse_date, dest='enddate',
         help='end date; If this is set, then a calendar with a different start date'
         ' will be generated for each day between the starting date and this date')
 
     args = parser.parse_args()
 
-    try:
-        start_date = parse_date(args.date)
-    except Exception as e:
-        print("Error: %s" % e)
-        return
-
     doc_name = '%s.pdf' % (os.path.splitext(args.filename)[0])
 
     if args.enddate:
-        start = start_date
+        start = args.date
 
-        try:
-            end = parse_date(args.enddate)
-        except Exception as e:
-            print("Error: %s" % e)
-            return
-
-        while start <= end:
+        while start <= args.enddate:
             date_str = start.strftime('%d-%m-%Y')
             name = "life_calendar_%s.pdf" % date_str
 
@@ -242,7 +245,7 @@ def main():
 
     else:
         try:
-            gen_calendar(start_date, args.title, doc_name)
+            gen_calendar(args.date, args.title, doc_name)
         except Exception as e:
             print("Error: %s" % e)
             return
