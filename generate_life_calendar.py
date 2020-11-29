@@ -38,6 +38,20 @@ NEWYEAR_COLOUR = (0.8, 0.8, 0.8)
 ARROW_HEAD_LENGTH = 36
 ARROW_HEAD_WIDTH = 8
 
+def parse_date(date):
+    formats = ['%d/%m/%Y', '%d-%m-%Y']
+    stripped = date.strip()
+
+    for f in formats:
+        try:
+            ret = datetime.datetime.strptime(date, f)
+        except:
+            continue
+        else:
+            return ret
+
+    raise ValueError("Incorrect date format: must be dd-mm-yyyy or dd/mm/yyyy")
+
 def draw_square(ctx, pos_x, pos_y, fillcolour=(1, 1, 1)):
     """
     Draws a square at pos_x,pos_y
@@ -64,7 +78,7 @@ def is_current_week(now, month, day):
 
     return (now <= date1 < end) or (now <= date2 < end)
 
-def draw_row(ctx, pos_y, start_date, date):
+def draw_row(ctx, pos_y, birthdate, date):
     """
     Draws a row of 52 squares, starting at pos_y
     """
@@ -74,7 +88,7 @@ def draw_row(ctx, pos_y, start_date, date):
     for i in range(NUM_COLUMNS):
         fill=(1, 1, 1)
 
-        if is_current_week(date, start_date.month, start_date.day):
+        if is_current_week(date, birthdate.month, birthdate.day):
             fill = BIRTHDAY_COLOUR
         elif is_current_week(date, 1, 1):
             fill = NEWYEAR_COLOUR
@@ -94,7 +108,7 @@ def draw_key_item(ctx, pos_x, pos_y, desc, colour):
 
     return pos_x + w + (BOX_SIZE * 2)
 
-def draw_grid(ctx, date):
+def draw_grid(ctx, date, birthdate):
     """
     Draws the whole grid of 52x90 squares
     """
@@ -140,13 +154,17 @@ def draw_grid(ctx, date):
         ctx.show_text(date_str)
 
         # Draw the current row
-        draw_row(ctx, pos_y, start_date, date)
+        draw_row(ctx, pos_y, birthdate, date)
 
         # Increment y position and current date by 1 row/year
         pos_y += BOX_SIZE + BOX_MARGIN
         date += datetime.timedelta(weeks=52)
 
-def gen_calendar(start_date, title, filename):
+def gen_calendar(birthdate, title, filename):
+    if len(title) > MAX_TITLE_SIZE:
+        raise ValueError("Title can't be longer than %d characters"
+            % MAX_TITLE_SIZE)
+
     # Fill background with white
     surface = cairo.PDFSurface (filename, DOC_WIDTH, DOC_HEIGHT)
     ctx = cairo.Context(surface)
@@ -164,14 +182,13 @@ def gen_calendar(start_date, title, filename):
     ctx.show_text(title)
 
     # Back up to the last monday
-    date = start_date
+    date = birthdate
     while date.weekday() != 0:
         date -= datetime.timedelta(days=1)
 
     # Draw 52x90 grid of squares
-    draw_grid(ctx, date)
+    draw_grid(ctx, date, birthdate)
     ctx.show_page()
-    print('Created %s' % filename)
 
 def main():
 
@@ -210,21 +227,29 @@ def main():
 
     doc_name = '%s.pdf' % (os.path.splitext(args.filename)[0])
 
-    if args.title and len(args.title) > MAX_TITLE_SIZE:
-        print("Error: title can't be longer than %d characters" % MAX_TITLE_SIZE)
-        sys.exit(1)
-
     if args.enddate:
         start = args.date
 
         while start <= args.enddate:
             date_str = start.strftime('%d-%m-%Y')
             name = "life_calendar_%s.pdf" % date_str
-            gen_calendar(start, args.title, name)
+
+            try:
+                gen_calendar(start, args.title, name)
+            except Exception as e:
+                print("Error: %s" % e)
+                return
+
             start += datetime.timedelta(days=1)
 
     else:
-        gen_calendar(args.date, args.title, doc_name)
+        try:
+            gen_calendar(args.date, args.title, doc_name)
+        except Exception as e:
+            print("Error: %s" % e)
+            return
+
+        print('Created %s' % doc_name)
 
 if __name__ == "__main__":
     main()
