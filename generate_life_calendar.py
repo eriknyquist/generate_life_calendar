@@ -28,8 +28,51 @@ NUM_COLUMNS = 52
 Y_MARGIN = 144
 BOX_MARGIN = 6
 
+MIN_AGE = 50
+MAX_AGE = 100
+
+
+def parse_date(date):
+    formats = ['%Y/%m/%d', '%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y']
+
+    for f in formats:
+        try:
+            ret = datetime.datetime.strptime(date.strip(), f)
+        except ValueError:
+            continue
+        else:
+            return ret
+
+    raise argparse.ArgumentTypeError("incorrect date format")
+
+parser = argparse.ArgumentParser(description='\nGenerate a personalized "Life '
+    ' Calendar", inspired by the calendar with the same name from the '
+    'waitbutwhy.com store')
+
+parser.add_argument(type=parse_date, dest='date', help='starting date; your birthday,'
+    'in either yyyy/mm/dd or dd/mm/yyyy format (dashes \'-\' may also be used in '
+    'place of slashes \'/\')')
+
+parser.add_argument('-f', '--filename', type=str, dest='filename',
+    help='output filename', default=DOC_NAME)
+
+parser.add_argument('-t', '--title', type=str, dest='title',
+    help='Calendar title text (default is "%s")' % DEFAULT_TITLE,
+    default=DEFAULT_TITLE)
+
+parser.add_argument('-e', '--end', type=parse_date, dest='enddate',
+    help='end date; If this is set, then a calendar with a different start date'
+    ' will be generated for each day between the starting date and this date')
+
+parser.add_argument('-a', '--age', type=int, dest='age', choices=range(MIN_AGE, MAX_AGE),
+                    metavar='[%s-%s]' % (MIN_AGE, MAX_AGE),
+                    help=('Number of rows to generate, representing years of life'),
+                    default=NUM_ROWS)
+
+args = parser.parse_args()
+
 BOX_LINE_WIDTH = 3
-BOX_SIZE = ((DOC_HEIGHT - (Y_MARGIN + 36)) / NUM_ROWS) - BOX_MARGIN
+BOX_SIZE = ((DOC_HEIGHT - (Y_MARGIN + 36)) / args.age) - BOX_MARGIN
 X_MARGIN = (DOC_WIDTH - ((BOX_SIZE + BOX_MARGIN) * NUM_COLUMNS)) / 2
 
 BIRTHDAY_COLOUR = (0.5, 0.5, 0.5)
@@ -142,7 +185,7 @@ def draw_grid(ctx, date, birthdate):
     ctx.select_font_face(FONT, cairo.FONT_SLANT_ITALIC,
         cairo.FONT_WEIGHT_NORMAL)
 
-    for i in range(NUM_ROWS):
+    for i in range(args.age):
         # Generate string for current date
         ctx.set_source_rgb(0, 0, 0)
         date_str = date.strftime('%d %b, %Y')
@@ -160,10 +203,13 @@ def draw_grid(ctx, date, birthdate):
         pos_y += BOX_SIZE + BOX_MARGIN
         date += datetime.timedelta(weeks=52)
 
-def gen_calendar(birthdate, title, filename):
+def gen_calendar(birthdate, title, age, filename):
     if len(title) > MAX_TITLE_SIZE:
         raise ValueError("Title can't be longer than %d characters"
             % MAX_TITLE_SIZE)
+
+    if (age < MIN_AGE) or (age > MAX_AGE):
+        raise ValueError("Invalid age, must be between %d and %d" % (MIN_AGE, MAX_AGE))
 
     # Fill background with white
     surface = cairo.PDFSurface (filename, DOC_WIDTH, DOC_HEIGHT)
@@ -191,41 +237,6 @@ def gen_calendar(birthdate, title, filename):
     ctx.show_page()
 
 def main():
-
-    def parse_date(date):
-        formats = ['%Y/%m/%d', '%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y']
-
-        for f in formats:
-            try:
-                ret = datetime.datetime.strptime(date.strip(), f)
-            except ValueError:
-                continue
-            else:
-                return ret
-
-        raise argparse.ArgumentTypeError("incorrect date format")
-
-    parser = argparse.ArgumentParser(description='\nGenerate a personalized "Life '
-        ' Calendar", inspired by the calendar with the same name from the '
-        'waitbutwhy.com store')
-
-    parser.add_argument(type=parse_date, dest='date', help='starting date; your birthday,'
-        'in either yyyy/mm/dd or dd/mm/yyyy format (dashes \'-\' may also be used in '
-        'place of slashes \'/\')')
-
-    parser.add_argument('-f', '--filename', type=str, dest='filename',
-        help='output filename', default=DOC_NAME)
-
-    parser.add_argument('-t', '--title', type=str, dest='title',
-        help='Calendar title text (default is "%s")' % DEFAULT_TITLE,
-        default=DEFAULT_TITLE)
-
-    parser.add_argument('-e', '--end', type=parse_date, dest='enddate',
-        help='end date; If this is set, then a calendar with a different start date'
-        ' will be generated for each day between the starting date and this date')
-
-    args = parser.parse_args()
-
     doc_name = '%s.pdf' % (os.path.splitext(args.filename)[0])
 
     if args.enddate:
@@ -236,7 +247,7 @@ def main():
             name = "life_calendar_%s.pdf" % date_str
 
             try:
-                gen_calendar(start, args.title, name)
+                gen_calendar(start, args.title, args.age, name)
             except Exception as e:
                 print("Error: %s" % e)
                 return
@@ -245,7 +256,7 @@ def main():
 
     else:
         try:
-            gen_calendar(args.date, args.title, doc_name)
+            gen_calendar(args.date, args.title, args.age, doc_name)
         except Exception as e:
             print("Error: %s" % e)
             return
