@@ -42,6 +42,8 @@ Several additional features make navigation through the calendar a bit easier;
 
 4. Boxes containing the first day of the year are shaded (a different shade)
 
+5. Number of calendar rows (years) is configurable between 90-100
+
 Installation
 ============
 
