@@ -4,8 +4,10 @@ import sys
 import os
 import cairo
 
-DOC_WIDTH = 1872   # 26 inches
-DOC_HEIGHT = 2880  # 40 inches
+# A1 standard international paper size
+DOC_WIDTH = 1683   # 594mm / 23 3/8 inches
+DOC_HEIGHT = 2383  # 841mm / 33 1/8 inches
+
 DOC_NAME = "life_calendar.pdf"
 
 KEY_NEWYEAR_DESC = "First week of the new year"
@@ -22,13 +24,10 @@ TINYFONT_SIZE = 14
 MAX_TITLE_SIZE = 30
 DEFAULT_TITLE = "LIFE CALENDAR"
 
-NUM_ROWS = 90
-NUM_COLUMNS = 52
-
 Y_MARGIN = 144
 BOX_MARGIN = 6
 
-MIN_AGE = 50
+MIN_AGE = 80
 MAX_AGE = 100
 
 
@@ -64,15 +63,17 @@ parser.add_argument('-e', '--end', type=parse_date, dest='enddate',
     help='end date; If this is set, then a calendar with a different start date'
     ' will be generated for each day between the starting date and this date')
 
-parser.add_argument('-a', '--age', type=int, dest='age', choices=range(MIN_AGE, MAX_AGE),
+parser.add_argument('-a', '--age', type=int, dest='age', choices=range(MIN_AGE, MAX_AGE + 1),
                     metavar='[%s-%s]' % (MIN_AGE, MAX_AGE),
                     help=('Number of rows to generate, representing years of life'),
-                    default=NUM_ROWS)
+                    default=90)
 
 args = parser.parse_args()
 
 BOX_LINE_WIDTH = 3
-BOX_SIZE = ((DOC_HEIGHT - (Y_MARGIN + 36)) / args.age) - BOX_MARGIN
+NUM_ROWS = args.age
+NUM_COLUMNS = 52
+BOX_SIZE = ((DOC_HEIGHT - (Y_MARGIN + 36)) / NUM_ROWS) - BOX_MARGIN
 X_MARGIN = (DOC_WIDTH - ((BOX_SIZE + BOX_MARGIN) * NUM_COLUMNS)) / 2
 
 BIRTHDAY_COLOUR = (0.5, 0.5, 0.5)
@@ -185,7 +186,7 @@ def draw_grid(ctx, date, birthdate):
     ctx.select_font_face(FONT, cairo.FONT_SLANT_ITALIC,
         cairo.FONT_WEIGHT_NORMAL)
 
-    for i in range(args.age):
+    for i in range(NUM_ROWS):
         # Generate string for current date
         ctx.set_source_rgb(0, 0, 0)
         date_str = date.strftime('%d %b, %Y')
@@ -247,7 +248,7 @@ def main():
             name = "life_calendar_%s.pdf" % date_str
 
             try:
-                gen_calendar(start, args.title, args.age, name)
+                gen_calendar(start, args.title, NUM_ROWS, name)
             except Exception as e:
                 print("Error: %s" % e)
                 return
