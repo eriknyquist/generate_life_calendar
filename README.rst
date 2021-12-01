@@ -90,3 +90,12 @@ change the output filename with the ``-f`` option
     $> python generate_life_calendar.py "23/10/1990" -f my_life_calendar.pdf
 
     Created my_life_calendar.pdf
+
+If you would like to fill in the squares for past weeks but don't want to do
+this by hand, just pass the ``-d`` option to darken past weeks
+
+::
+
+    $> python generate_life_calendar.py "23/10/1990" -d
+
+    Created life_calendar.pdf
