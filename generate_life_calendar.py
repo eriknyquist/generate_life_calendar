@@ -49,9 +49,11 @@ NUM_COLUMNS = 52
 
 BIRTHDAY_COLOUR = (0.5, 0.5, 0.5)
 NEWYEAR_COLOUR = (0.8, 0.8, 0.8)
+DARKENED_COLOUR_DELTA = (-0.4, -0.4, -0.4)
 
 ARROW_HEAD_LENGTH = 36
 ARROW_HEAD_WIDTH = 8
+
 
 def parse_date(date):
     formats = ['%d/%m/%Y', '%d-%m-%Y']
@@ -86,6 +88,14 @@ def text_size(ctx, text):
     _, _, width, height, _, _ = ctx.text_extents(text)
     return width, height
 
+def back_up_to_monday(date):
+    while date.weekday() != 0:
+        date -= datetime.timedelta(days=1)
+    return date
+
+def is_future(now, date):
+    return now < date
+
 def is_current_week(now, month, day):
     end = now + datetime.timedelta(weeks=1)
     date1 = datetime.datetime(now.year, month, day)
@@ -93,7 +103,15 @@ def is_current_week(now, month, day):
 
     return (now <= date1 < end) or (now <= date2 < end)
 
-def draw_row(ctx, pos_y, birthdate, date, box_size, x_margin):
+def get_darken_until_date():
+    today = datetime.date.today()
+    today_datetime = datetime.datetime(today.year, today.month, today.day)
+    return back_up_to_monday(today_datetime)
+
+def get_darkened_fill(fill):
+    return tuple(map(sum, zip(fill, DARKENED_COLOUR_DELTA)))
+
+def draw_row(ctx, pos_y, birthdate, date, box_size, x_margin, darken_until_date):
     """
     Draws a row of 52 squares, starting at pos_y
     """
@@ -107,6 +125,9 @@ def draw_row(ctx, pos_y, birthdate, date, box_size, x_margin):
             fill = BIRTHDAY_COLOUR
         elif is_current_week(date, 1, 1):
             fill = NEWYEAR_COLOUR
+      
+        if darken_until_date and is_future(date, darken_until_date):
+            fill = get_darkened_fill(fill)
 
         draw_square(ctx, pos_x, pos_y, box_size, fillcolour=fill)
         pos_x += box_size + BOX_MARGIN
@@ -123,7 +144,7 @@ def draw_key_item(ctx, pos_x, pos_y, desc, box_size, colour):
 
     return pos_x + w + (box_size * 2)
 
-def draw_grid(ctx, date, birthdate, age):
+def draw_grid(ctx, date, birthdate, age, darken_until_date):
     """
     Draws the whole grid of 52x90 squares
     """
@@ -173,13 +194,13 @@ def draw_grid(ctx, date, birthdate, age):
         ctx.show_text(date_str)
 
         # Draw the current row
-        draw_row(ctx, pos_y, birthdate, date, box_size, x_margin)
+        draw_row(ctx, pos_y, birthdate, date, box_size, x_margin, darken_until_date)
 
         # Increment y position and current date by 1 row/year
         pos_y += box_size + BOX_MARGIN
         date += datetime.timedelta(weeks=52)
 
-def gen_calendar(birthdate, title, age, filename):
+def gen_calendar(birthdate, title, age, filename, darken_until_date):
     if len(title) > MAX_TITLE_SIZE:
         raise ValueError("Title can't be longer than %d characters"
             % MAX_TITLE_SIZE)
@@ -204,13 +225,10 @@ def gen_calendar(birthdate, title, age, filename):
     ctx.move_to((DOC_WIDTH / 2) - (w / 2), (Y_MARGIN / 2) - (h / 2))
     ctx.show_text(title)
 
-    # Back up to the last monday
-    date = birthdate
-    while date.weekday() != 0:
-        date -= datetime.timedelta(days=1)
+    date = back_up_to_monday(birthdate)
 
     # Draw 52x90 grid of squares
-    draw_grid(ctx, date, birthdate, age)
+    draw_grid(ctx, date, birthdate, age, darken_until_date)
     ctx.show_page()
 
 def main():
@@ -237,10 +255,13 @@ def main():
                         metavar='[%s-%s]' % (MIN_AGE, MAX_AGE),
                         help=('Number of rows to generate, representing years of life'),
                         default=90)
+    parser.add_argument('-d', '--darken-past', dest='darken_past',
+        action='store_true', help='flag: darken boxes for past weeks')
 
     args = parser.parse_args()
 
     doc_name = '%s.pdf' % (os.path.splitext(args.filename)[0])
+    darken_until_date = get_darken_until_date() if args.darken_past else None
 
     if args.enddate:
         start = args.date
@@ -250,7 +271,7 @@ def main():
             name = "life_calendar_%s.pdf" % date_str
 
             try:
-                gen_calendar(start, args.title, NUM_ROWS, name)
+                gen_calendar(start, args.title, NUM_ROWS, name, darken_until_date)
             except Exception as e:
                 print("Error: %s" % e)
                 return
@@ -259,7 +280,7 @@ def main():
 
     else:
         try:
-            gen_calendar(args.date, args.title, args.age, doc_name)
+            gen_calendar(args.date, args.title, args.age, doc_name, darken_until_date)
         except Exception as e:
             print("Error: %s" % e)
             return
