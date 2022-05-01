@@ -97,10 +97,14 @@ def is_current_week(now, month, day):
     return (now <= date1 < end) or (now <= date2 < end)
 
 
-def get_darken_until_date():
-    today = datetime.date.today()
-    today_datetime = datetime.datetime(today.year, today.month, today.day)
-    return back_up_to_monday(today_datetime)
+def parse_darken_until_date(date):
+    if date == 'today':
+        today = datetime.date.today()
+        until_date = datetime.datetime(today.year, today.month, today.day)
+    else:
+        until_date = parse_date(date)
+
+    return back_up_to_monday(until_date)
 
 
 def get_darkened_fill(fill):
@@ -252,16 +256,15 @@ def main():
                         help=('Number of rows to generate, representing years of life'),
                         default=90)
 
-    parser.add_argument('-d', '--darken-past', dest='darken_past',
-                        action='store_true', help='flag: darken boxes for past weeks')
+    parser.add_argument('-d', '--darken-until', type=parse_darken_until_date, dest='darken_until_date',
+                         nargs='?', const='today', help='Darken until date. '
+                        '(defaults to today if argument is not given)')
 
     args = parser.parse_args()
-
     doc_name = '%s.pdf' % (os.path.splitext(args.filename)[0])
-    darken_until_date = get_darken_until_date() if args.darken_past else None
 
     try:
-        gen_calendar(args.date, args.title, args.age, doc_name, darken_until_date)
+        gen_calendar(args.date, args.title, args.age, doc_name, args.darken_until_date)
     except Exception as e:
         print("Error: %s" % e)
         return
