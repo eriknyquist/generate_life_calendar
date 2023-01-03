@@ -1,0 +1,7 @@
+{
+    "image": "mcr.microsoft.com/vscode/devcontainers/base:ubuntu", // ubuntu LTS latest
+    "onCreateCommand": "bash .devcontainer/install.sh",
+    "extensions": [
+        "james-yu.latex-workshop" // Display pdf in VSCode
+    ]
+}
