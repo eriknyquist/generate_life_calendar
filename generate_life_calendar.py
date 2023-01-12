@@ -91,8 +91,17 @@ def is_future(now, date):
 
 def is_current_week(now, month, day):
     end = now + datetime.timedelta(weeks=1)
-    date1 = datetime.datetime(now.year, month, day)
-    date2 = datetime.datetime(now.year + 1, month, day)
+
+    try:
+        date1 = datetime.datetime(now.year, month, day)
+    except ValueError as e:
+        if (month == 2) and (day == 29):
+            # Handle edge case for birthday being on leap year day
+            date1 = datetime.datetime(now.year, month, day - 1)
+        else:
+            raise e
+
+    date2 = date1 + datetime.timedelta(weeks=52)
 
     return (now <= date1 < end) or (now <= date2 < end)
 
