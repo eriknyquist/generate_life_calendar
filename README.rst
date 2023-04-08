@@ -50,14 +50,26 @@ Installation
 Dependencies
 ------------
 
-You must install the following dependencies before you can generate a
+You must install ``pycairo`` before you can generate a
 Life Calendar:
 
 * `PyCairo <https://pypi.python.org/pypi/pycairo>`_ (Python library for drawing
   stuff & generating documents/images)
 
-  Install from the link above, or if you're running something like Debian/Ubuntu
-  I'll save you some time, ``sudo apt-get install python-cairo``
+  ::
+
+      pip install pycairo
+
+  Or if you're running something like Debian/Ubuntu:
+
+  ::
+
+      sudo apt-get install python-cairo
+
+If you are getting ``Error: out of memory`` when running pycairo on windows after installing with pip,
+try instead installing from `this archive of pre-built pycairo wheels for windows <https://www.lfd.uci.edu/~gohlke/pythonlibs/#pycairo>`_.
+Make sure to pick the right wheel for your system, i.e. if you are using 64-bit python 3.11,
+you should pick ``pycairo-1.21.0-cp311-cp311-win_amd64.whl``.
 
 Download
 --------
