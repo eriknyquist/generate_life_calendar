@@ -1,4 +1,5 @@
 import datetime
+import calendar
 import argparse
 import sys
 import os
@@ -91,19 +92,21 @@ def is_future(now, date):
 
 def is_current_week(now, month, day):
     end = now + datetime.timedelta(weeks=1)
+    ret = []
 
-    try:
-        date1 = datetime.datetime(now.year, month, day)
-    except ValueError as e:
-        if (month == 2) and (day == 29):
-            # Handle edge case for birthday being on leap year day
-            date1 = datetime.datetime(now.year, month, day - 1)
-        else:
-            raise e
+    for year in [now.year, now.year + 1]:
+        try:
+            date = datetime.datetime(year, month, day)
+        except ValueError as e:
+            if (month == 2) and (day == 29):
+                # Handle edge case for birthday being on leap year day
+                date = datetime.datetime(year, month, day - 1)
+            else:
+                raise e
 
-    date2 = date1 + datetime.timedelta(weeks=52)
+        ret.append(now <= date < end)
 
-    return (now <= date1 < end) or (now <= date2 < end)
+    return True in ret
 
 
 def parse_darken_until_date(date):
