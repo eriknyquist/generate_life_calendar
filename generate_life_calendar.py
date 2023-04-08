@@ -130,19 +130,13 @@ def draw_row(ctx, pos_y, birthdate, date, box_size, x_margin, darken_until_date)
 
     pos_x = x_margin
 
-    seen_birthday = False
-    seen_newyear = False
-
     for i in range(NUM_COLUMNS):
         fill = (1, 1, 1)
 
-        if (not seen_newyear) and is_current_week(date, 1, 1):
-            fill = NEWYEAR_COLOUR
-            seen_newyear = True
-      
-        if (not seen_birthday) and is_current_week(date, birthdate.month, birthdate.day):
+        if is_current_week(date, birthdate.month, birthdate.day):
             fill = BIRTHDAY_COLOUR
-            seen_birthday = True
+        elif is_current_week(date, 1, 1):
+            fill = NEWYEAR_COLOUR
 
         if darken_until_date and is_future(date, darken_until_date):
             fill = get_darkened_fill(fill)
