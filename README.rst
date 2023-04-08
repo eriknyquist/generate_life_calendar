@@ -74,8 +74,7 @@ you should pick ``pycairo-1.21.0-cp311-cp311-win_amd64.whl``.
 Download
 --------
 
-It's just a single python script, no fancy installation. Just clone this repo
-to get the script
+Clone this repo to get the ``generate_life_calendar.py`` script
 
 ::
 
@@ -84,7 +83,7 @@ to get the script
 Usage
 =====
 
-After cloning this repo, just run the script, passing in your birth date (format
+After cloning this repo, run the script, passing in your birth date (format
 can be either dd-mm-yyyy or dd/mm/yyyy)
 
 ::
