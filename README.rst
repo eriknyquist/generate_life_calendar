@@ -64,7 +64,7 @@ Life Calendar:
 
   ::
 
-      sudo apt-get install python-cairo
+      sudo apt install libcairo2-dev pkg-config python3-dev
 
 If you are getting ``Error: out of memory`` when running pycairo on windows after installing with pip,
 try instead installing from `this archive of pre-built pycairo wheels for windows <https://www.lfd.uci.edu/~gohlke/pythonlibs/#pycairo>`_.
@@ -110,3 +110,6 @@ this by hand, just pass the ``-d`` option to darken past weeks
     $> python generate_life_calendar.py "23/10/1990" -d
 
     Created life_calendar.pdf
+
+If you would like to have the original format from `wait but why`, pass --classic option
+
