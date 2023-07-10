@@ -46,7 +46,7 @@ ARROW_HEAD_WIDTH = 8
 
 
 def parse_date(date):
-    formats = ['%d/%m/%Y', '%d-%m-%Y']
+    formats = ['%d/%m/%Y', '%d-%m-%Y', '%Y-%m-%d']
 
     for f in formats:
         try:
@@ -123,7 +123,7 @@ def get_darkened_fill(fill):
     return tuple(map(sum, zip(fill, DARKENED_COLOUR_DELTA)))
 
 
-def draw_row(ctx, pos_y, birthdate, date, box_size, x_margin, darken_until_date):
+def draw_row(ctx, pos_y, birthdate, date, box_size, x_margin, darken_until_date, classic:bool):
     """
     Draws a row of 52 squares, starting at pos_y
     """
@@ -132,11 +132,11 @@ def draw_row(ctx, pos_y, birthdate, date, box_size, x_margin, darken_until_date)
 
     for i in range(NUM_COLUMNS):
         fill = (1, 1, 1)
-
-        if is_current_week(date, birthdate.month, birthdate.day):
-            fill = BIRTHDAY_COLOUR
-        elif is_current_week(date, 1, 1):
-            fill = NEWYEAR_COLOUR
+        if not classic:
+            if is_current_week(date, birthdate.month, birthdate.day):
+                fill = BIRTHDAY_COLOUR
+            elif is_current_week(date, 1, 1):
+                fill = NEWYEAR_COLOUR
 
         if darken_until_date and is_future(date, darken_until_date):
             fill = get_darkened_fill(fill)
@@ -158,7 +158,7 @@ def draw_key_item(ctx, pos_x, pos_y, desc, box_size, colour):
     return pos_x + w + (box_size * 2)
 
 
-def draw_grid(ctx, date, birthdate, age, darken_until_date):
+def draw_grid(ctx, date, birthdate, age, darken_until_date, classic:bool):
     """
     Draws the whole grid of 52x90 squares
     """
@@ -175,8 +175,9 @@ def draw_grid(ctx, date, birthdate, age, darken_until_date):
     ctx.select_font_face(FONT, cairo.FONT_SLANT_NORMAL,
         cairo.FONT_WEIGHT_NORMAL)
 
-    pos_x = draw_key_item(ctx, pos_x, pos_y, KEY_BIRTHDAY_DESC, box_size, BIRTHDAY_COLOUR)
-    draw_key_item(ctx, pos_x, pos_y, KEY_NEWYEAR_DESC, box_size, NEWYEAR_COLOUR)
+    if not classic:
+        pos_x = draw_key_item(ctx, pos_x, pos_y, KEY_BIRTHDAY_DESC, box_size, BIRTHDAY_COLOUR)
+        draw_key_item(ctx, pos_x, pos_y, KEY_NEWYEAR_DESC, box_size, NEWYEAR_COLOUR)
 
     # draw week numbers above top row
     ctx.set_font_size(TINYFONT_SIZE)
@@ -199,7 +200,10 @@ def draw_grid(ctx, date, birthdate, age, darken_until_date):
     for i in range(num_rows):
         # Generate string for current date
         ctx.set_source_rgb(0, 0, 0)
-        date_str = date.strftime('%d %b, %Y')
+        if classic:
+            date_str = '{: >3}'.format(i)
+        else:
+            date_str = date.strftime('%d %b, %Y')
         w, h = text_size(ctx, date_str)
 
         # Draw it in front of the current row
@@ -208,14 +212,14 @@ def draw_grid(ctx, date, birthdate, age, darken_until_date):
         ctx.show_text(date_str)
 
         # Draw the current row
-        draw_row(ctx, pos_y, birthdate, date, box_size, x_margin, darken_until_date)
+        draw_row(ctx, pos_y, birthdate, date, box_size, x_margin, darken_until_date,classic)
 
         # Increment y position and current date by 1 row/year
         pos_y += box_size + BOX_MARGIN
         date += datetime.timedelta(weeks=52)
 
 
-def gen_calendar(birthdate, title, age, filename, darken_until_date):
+def gen_calendar(birthdate, title, age, filename, darken_until_date, classic:bool):
     if len(title) > MAX_TITLE_SIZE:
         raise ValueError("Title can't be longer than %d characters"
             % MAX_TITLE_SIZE)
@@ -240,10 +244,10 @@ def gen_calendar(birthdate, title, age, filename, darken_until_date):
     ctx.move_to((DOC_WIDTH / 2) - (w / 2), (Y_MARGIN / 2) - (h / 2))
     ctx.show_text(title)
 
-    date = back_up_to_monday(birthdate)
+    date = back_up_to_monday(birthdate) if not classic else datetime.datetime(1990,1,1)
 
     # Draw 52x90 grid of squares
-    draw_grid(ctx, date, birthdate, age, darken_until_date)
+    draw_grid(ctx, date, birthdate, age, darken_until_date, classic)
     ctx.show_page()
 
 
@@ -252,9 +256,10 @@ def main():
                                      ' Calendar", inspired by the calendar with the same name from the '
                                      'waitbutwhy.com store')
 
+    #one of "--classic" or date must be passed
     parser.add_argument(type=parse_date, dest='date', help='starting date; your birthday,'
                         'in either yyyy/mm/dd or dd/mm/yyyy format (dashes \'-\' may also be used in '
-                        'place of slashes \'/\')')
+                        'place of slashes \'/\')', nargs='?')
 
     parser.add_argument('-f', '--filename', type=str, dest='filename',
                         help='output filename', default=DOC_NAME)
@@ -272,11 +277,16 @@ def main():
                          nargs='?', const='today', help='Darken until date. '
                         '(defaults to today if argument is not given)')
 
+    parser.add_argument('--classic', dest='classic_mode',default=False, action='store_true', help='generate the original format from WBW')
     args = parser.parse_args()
+
+    if not ((args.date is not None)  ^ args.classic_mode):
+        raise parser.error('either "--classic" or date must be present')
+
     doc_name = '%s.pdf' % (os.path.splitext(args.filename)[0])
 
     try:
-        gen_calendar(args.date, args.title, args.age, doc_name, args.darken_until_date)
+        gen_calendar(args.date, args.title, args.age, doc_name, args.darken_until_date, classic=args.classic_mode)
     except Exception as e:
         print("Error: %s" % e)
         return
