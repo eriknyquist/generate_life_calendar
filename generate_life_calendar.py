@@ -3,6 +3,7 @@ import calendar
 import argparse
 import sys
 import os
+import math
 
 import cairo
 
@@ -214,8 +215,10 @@ def draw_grid(ctx, date, birthdate, age, darken_until_date):
         pos_y += box_size + BOX_MARGIN
         date += datetime.timedelta(weeks=52)
 
+    return x_margin
 
-def gen_calendar(birthdate, title, age, filename, darken_until_date):
+def gen_calendar(birthdate, title, age, filename, darken_until_date, sidebar_text=None,
+                 subtitle_text=None):
     if len(title) > MAX_TITLE_SIZE:
         raise ValueError("Title can't be longer than %d characters"
             % MAX_TITLE_SIZE)
@@ -240,10 +243,27 @@ def gen_calendar(birthdate, title, age, filename, darken_until_date):
     ctx.move_to((DOC_WIDTH / 2) - (w / 2), (Y_MARGIN / 2) - (h / 2))
     ctx.show_text(title)
 
+    if subtitle_text is not None:
+        ctx.set_source_rgb(0.7, 0.7, 0.7)
+        ctx.set_font_size(SMALLFONT_SIZE)
+        w, h = text_size(ctx, subtitle_text)
+        ctx.move_to((DOC_WIDTH / 2) - (w / 2), (Y_MARGIN / 2) - (h / 2) + 15)
+        ctx.show_text(subtitle_text)
+
     date = back_up_to_monday(birthdate)
 
     # Draw 52x90 grid of squares
-    draw_grid(ctx, date, birthdate, age, darken_until_date)
+    x_margin = draw_grid(ctx, date, birthdate, age, darken_until_date)
+
+    if sidebar_text is not None:
+        # Draw text on sidebar
+        w, h = text_size(ctx, sidebar_text)
+        ctx.move_to((DOC_WIDTH - x_margin) + 20, Y_MARGIN + w + 100)
+        ctx.set_font_size(SMALLFONT_SIZE)
+        ctx.set_source_rgb(0.7, 0.7, 0.7)
+        ctx.rotate(-90 * math.pi / 180)
+        ctx.show_text(sidebar_text)
+
     ctx.show_page()
 
 
@@ -263,6 +283,14 @@ def main():
                         help='Calendar title text (default is "%s")' % DEFAULT_TITLE,
                         default=DEFAULT_TITLE)
 
+    parser.add_argument('-s', '--sidebar-text', type=str, dest='sidebar_text',
+                        help='Text to show along the right side of grid (default is no sidebar text)',
+                        default=None)
+
+    parser.add_argument('-b', '--subtitle-text', type=str, dest='subtitle_text',
+                        help='Text to show under the calendar title (default is no subtitle text)',
+                        default=None)
+
     parser.add_argument('-a', '--age', type=int, dest='age', choices=range(MIN_AGE, MAX_AGE + 1),
                         metavar='[%s-%s]' % (MIN_AGE, MAX_AGE),
                         help=('Number of rows to generate, representing years of life'),
@@ -276,7 +304,8 @@ def main():
     doc_name = '%s.pdf' % (os.path.splitext(args.filename)[0])
 
     try:
-        gen_calendar(args.date, args.title, args.age, doc_name, args.darken_until_date)
+        gen_calendar(args.date, args.title, args.age, doc_name, args.darken_until_date,
+                     sidebar_text=args.sidebar_text, subtitle_text=args.subtitle_text)
     except Exception as e:
         print("Error: %s" % e)
         return
